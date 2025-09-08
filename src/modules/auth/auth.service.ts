@@ -67,17 +67,21 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
 
-    // Find user with password
     const user = await this.userModel
       .findOne({ email, isActive: true })
-      .select('+passwordHash')
+      .select('+passwordHash +password')
       .exec();
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const storedPassword = user.passwordHash || (user as any).password;
+    if (!storedPassword) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, storedPassword);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -195,6 +199,28 @@ export class AuthService {
     } catch (error) {
       // If we can't decode the token, we can't blacklist it
       console.error('Error blacklisting refresh token:', error);
+    }
+  }
+
+  /**
+   * Migrate user from old password field to passwordHash field
+   * This is a one-time migration helper
+   */
+  async migrateUserPassword(userId: string): Promise<void> {
+    const user = await this.userModel
+      .findById(userId)
+      .select('+password +passwordHash')
+      .exec();
+
+    if (user && (user as any).password && !user.passwordHash) {
+      // Migrate password to passwordHash
+      await this.userModel
+        .findByIdAndUpdate(userId, {
+          passwordHash: (user as any).password,
+          $unset: { password: 1 },
+        })
+        .exec();
+      console.log(`Migrated password for user: ${user.email}`);
     }
   }
 }
