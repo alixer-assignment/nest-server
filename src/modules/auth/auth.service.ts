@@ -42,7 +42,7 @@ export class AuthService {
     // Create user
     const user = new this.userModel({
       email,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       name,
       role: 'user',
       isActive: true,
@@ -67,14 +67,17 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
 
-    // Find user
-    const user = await this.userModel.findOne({ email, isActive: true });
+    // Find user with password
+    const user = await this.userModel
+      .findOne({ email, isActive: true })
+      .select('+passwordHash')
+      .exec();
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
