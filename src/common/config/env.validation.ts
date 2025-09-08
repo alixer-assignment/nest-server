@@ -36,8 +36,8 @@ export class EnvironmentVariables {
   @IsOptional()
   JWT_REFRESH_TTL?: string = '7d';
 
-  @IsUrl()
-  FASTAPI_URL: string;
+  //   @IsUrl()
+  //   FASTAPI_URL: string;
 
   @IsString()
   SERVICE_SHARED_SECRET: string;

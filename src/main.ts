@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { setupSwagger } from './common/swagger/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -38,9 +39,13 @@ async function bootstrap() {
   // Global prefix /api
   app.setGlobalPrefix('api');
 
+  // Setup Swagger documentation
+  setupSwagger(app);
+
   const port = configService.get('app.port');
   await app.listen(port);
 
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();

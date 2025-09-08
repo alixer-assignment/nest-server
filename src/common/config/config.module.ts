@@ -18,7 +18,7 @@ export const ConfigModule = NestConfigModule.forRoot({
     RedisConfig,
     KafkaConfig,
     JwtConfig,
-    FastApiConfig,
+    // FastApiConfig,
     ServiceConfig,
   ],
   validate,

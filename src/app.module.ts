@@ -3,14 +3,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from './config/config.module';
-import { RedisModule } from './redis/redis.module';
-import { KafkaModule } from './kafka/kafka.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { RoomsModule } from './rooms/rooms.module';
-import { MessagesModule } from './messages/messages.module';
-import { WebSocketModule } from './websocket/websocket.module';
+import { ConfigModule } from './common/config/config.module';
+import { RedisModule } from './common/redis/redis.module';
+import { KafkaModule } from './common/kafka/kafka.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { RoomsModule } from './modules/rooms/rooms.module';
+import { MessagesModule } from './modules/messages/messages.module';
+import { WebSocketModule } from './common/websocket/websocket.module';
 
 @Module({
   imports: [
