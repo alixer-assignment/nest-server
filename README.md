@@ -49,25 +49,63 @@ src/
 
 - Node.js (v18 or higher)
 - pnpm package manager
-- MongoDB
-- Redis
-- Kafka (optional)
+- Docker and Docker Compose (recommended)
+- OR manually install: MongoDB, Redis, Kafka
 
 ## Installation
 
-1. Install dependencies:
+### Option 1: Using Docker (Recommended)
+
+1. **Start required services:**
+
+```bash
+# For development
+docker-compose -f docker-compose.dev.yml up -d
+
+# For production (includes monitoring tools)
+docker-compose up -d
+```
+
+2. **Install dependencies:**
 
 ```bash
 pnpm install
 ```
 
-2. Create environment file:
+3. **Create environment file:**
 
 ```bash
 cp .env.example .env
 ```
 
-3. Update the `.env` file with your configuration values.
+4. **Update the `.env` file with Docker service URLs:**
+
+```env
+MONGO_URI=mongodb://backend_user:backend_password@localhost:27017/backend
+REDIS_URL=redis://:redis123@localhost:6379
+KAFKA_BROKER=localhost:9092
+```
+
+### Option 2: Manual Installation
+
+1. **Install dependencies:**
+
+```bash
+pnpm install
+```
+
+2. **Install and configure services manually:**
+   - MongoDB
+   - Redis
+   - Kafka with Zookeeper
+
+3. **Create environment file:**
+
+```bash
+cp .env.example .env
+```
+
+4. **Update the `.env` file with your service URLs.**
 
 ## Environment Variables
 
