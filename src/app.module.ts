@@ -6,6 +6,9 @@ import { AppService } from './app.service';
 import { ConfigModule } from './common/config/config.module';
 import { RedisModule } from './common/redis/redis.module';
 import { KafkaModule } from './common/kafka/kafka.module';
+import { CacheModule } from './common/cache/cache.module';
+import { LoggingModule } from './common/logging/logging.module';
+import { SanitizationModule } from './common/sanitization/sanitization.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
@@ -29,6 +32,9 @@ import { WebSocketModule } from './common/websocket/websocket.module';
     }),
     RedisModule,
     KafkaModule,
+    CacheModule,
+    LoggingModule,
+    SanitizationModule,
     AuthModule,
     UsersModule,
     RoomsModule,

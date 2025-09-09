@@ -1,12 +1,25 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer, Consumer } from 'kafkajs';
+import { validate } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+import {
+  MessageMetadata,
+  ModeratedMessage,
+  PersistedMessage,
+} from './schemas/message.schemas';
 
 @Injectable()
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private kafka: Kafka;
   private producer: Producer;
   private consumer: Consumer;
+  private readonly logger = new Logger(KafkaService.name);
 
   constructor(private configService: ConfigService) {}
 
@@ -27,7 +40,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     await this.producer.connect();
     await this.consumer.connect();
 
-    console.log('Kafka producer and consumer connected successfully');
+    this.logger.log('Kafka producer and consumer connected successfully');
   }
 
   async onModuleDestroy() {
@@ -41,18 +54,21 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
   async produce(topic: string, message: any): Promise<void> {
     try {
+      // Validate message based on topic
+      const validatedMessage = await this.validateMessage(topic, message);
+
       await this.producer.send({
         topic,
         messages: [
           {
-            key: message.id || Date.now().toString(),
-            value: JSON.stringify(message),
+            key: validatedMessage.id || Date.now().toString(),
+            value: JSON.stringify(validatedMessage),
           },
         ],
       });
-      console.log(`Message sent to topic ${topic}:`, message);
+      this.logger.log(`Message sent to topic ${topic}:`, validatedMessage);
     } catch (error) {
-      console.error('Error producing Kafka message:', error);
+      this.logger.error('Error producing Kafka message:', error);
       throw error;
     }
   }
@@ -70,21 +86,28 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
             const messageValue = message.value?.toString();
             if (messageValue) {
               const parsedMessage = JSON.parse(messageValue);
-              console.log(
-                `Message received from topic ${topic}:`,
+
+              // Validate consumed message
+              const validatedMessage = await this.validateMessage(
+                topic,
                 parsedMessage,
               );
-              callback(parsedMessage);
+
+              this.logger.log(
+                `Message received from topic ${topic}:`,
+                validatedMessage,
+              );
+              callback(validatedMessage);
             }
           } catch (error) {
-            console.error('Error processing consumed message:', error);
+            this.logger.error('Error processing consumed message:', error);
           }
         },
       });
 
-      console.log(`Subscribed to topic: ${topic}`);
+      this.logger.log(`Subscribed to topic: ${topic}`);
     } catch (error) {
-      console.error('Error setting up Kafka consumer:', error);
+      this.logger.error('Error setting up Kafka consumer:', error);
       throw error;
     }
   }
@@ -102,16 +125,101 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
           },
         ],
       });
-      console.log(`Topic ${topic} created successfully`);
+      this.logger.log(`Topic ${topic} created successfully`);
     } catch (error: any) {
       if (error.type === 'TOPIC_ALREADY_EXISTS') {
-        console.log(`Topic ${topic} already exists`);
+        this.logger.log(`Topic ${topic} already exists`);
       } else {
-        console.error('Error creating topic:', error);
+        this.logger.error('Error creating topic:', error);
         throw error;
       }
     } finally {
       await admin.disconnect();
     }
+  }
+
+  /**
+   * Validate message based on topic schema
+   */
+  private async validateMessage(topic: string, message: any): Promise<any> {
+    let schemaClass: any;
+
+    switch (topic) {
+      case 'messages.inbound':
+        schemaClass = MessageMetadata;
+        break;
+      case 'messages.moderated':
+        schemaClass = ModeratedMessage;
+        break;
+      case 'messages.persisted':
+        schemaClass = PersistedMessage;
+        break;
+      default:
+        // For unknown topics, return message as-is
+        return message;
+    }
+
+    const messageInstance = plainToClass(schemaClass, message);
+    const errors = await validate(messageInstance);
+
+    if (errors.length > 0) {
+      const errorMessages = errors
+        .map((error) => Object.values(error.constraints || {}).join(', '))
+        .join('; ');
+
+      throw new Error(
+        `Message validation failed for topic ${topic}: ${errorMessages}`,
+      );
+    }
+
+    return messageInstance;
+  }
+
+  /**
+   * Produce message to messages.inbound topic
+   */
+  async produceInboundMessage(message: MessageMetadata): Promise<void> {
+    return this.produce('messages.inbound', message);
+  }
+
+  /**
+   * Produce message to messages.moderated topic
+   */
+  async produceModeratedMessage(message: ModeratedMessage): Promise<void> {
+    return this.produce('messages.moderated', message);
+  }
+
+  /**
+   * Produce message to messages.persisted topic
+   */
+  async producePersistedMessage(message: PersistedMessage): Promise<void> {
+    return this.produce('messages.persisted', message);
+  }
+
+  /**
+   * Consume messages from messages.inbound topic
+   */
+  async consumeInboundMessages(
+    callback: (message: MessageMetadata) => void,
+  ): Promise<void> {
+    return this.consume('messages.inbound', callback);
+  }
+
+  /**
+   * Consume messages from messages.moderated topic
+   */
+  async consumeModeratedMessages(
+    callback: (message: ModeratedMessage) => void,
+  ): Promise<void> {
+    return this.consume('messages.moderated', callback);
+  }
+
+  /**
+   * Consume messages from messages.persisted topic
+   */
+  async consumePersistedMessages(
+    callback: (message: PersistedMessage) => void,
+  ): Promise<void> {
+    return this.consume('messages.persisted', callback);
   }
 }
