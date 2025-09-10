@@ -27,12 +27,20 @@ export class RoomsService {
   ) {}
 
   /**
+   * Clean userId by removing quotes if present
+   */
+  private cleanUserId(userId: string): string {
+    return userId.replace(/^["']|["']$/g, '');
+  }
+
+  /**
    * Create a new room
    */
   async createRoom(
     createRoomDto: CreateRoomDto,
     currentUser: UserDocument,
   ): Promise<RoomResponseDto> {
+    console.log('createRoomDto', createRoomDto);
     const room = new this.roomModel({
       ...createRoomDto,
       createdBy: currentUser._id,
@@ -69,7 +77,7 @@ export class RoomsService {
 
     // Get room IDs where user is a member
     const memberships = await this.membershipModel
-      .find({ userId: new Types.ObjectId(userId) })
+      .find({ userId: new Types.ObjectId(this.cleanUserId(userId)) })
       .select('roomId')
       .exec();
 
@@ -98,13 +106,17 @@ export class RoomsService {
    * Get room by ID (only if user is a member)
    */
   async getRoomById(roomId: string, userId: string): Promise<RoomResponseDto> {
+    console.log('roomId', roomId);
+    console.log('userId', userId);
     // Check if user is a member
     const membership = await this.membershipModel
       .findOne({
         roomId: new Types.ObjectId(roomId),
-        userId: new Types.ObjectId(userId),
+        userId: this.cleanUserId(userId),
       })
       .exec();
+
+    console.log('membership', membership);
 
     if (!membership) {
       throw new ForbiddenException('You are not a member of this room');
@@ -256,7 +268,7 @@ export class RoomsService {
     const targetMembership = await this.membershipModel
       .findOne({
         roomId: new Types.ObjectId(roomId),
-        userId: new Types.ObjectId(userId),
+        userId: new Types.ObjectId(this.cleanUserId(userId)),
       })
       .exec();
 
@@ -320,7 +332,7 @@ export class RoomsService {
     const targetMembership = await this.membershipModel
       .findOne({
         roomId: new Types.ObjectId(roomId),
-        userId: new Types.ObjectId(userId),
+        userId: new Types.ObjectId(this.cleanUserId(userId)),
       })
       .exec();
 
@@ -356,7 +368,7 @@ export class RoomsService {
     const membership = await this.membershipModel
       .findOne({
         roomId: new Types.ObjectId(roomId),
-        userId: new Types.ObjectId(userId),
+        userId: new Types.ObjectId(this.cleanUserId(userId)),
       })
       .exec();
 
@@ -381,7 +393,7 @@ export class RoomsService {
     const membership = await this.membershipModel
       .findOne({
         roomId: new Types.ObjectId(roomId),
-        userId: new Types.ObjectId(userId),
+        userId: this.cleanUserId(userId),
       })
       .exec();
 
@@ -395,7 +407,7 @@ export class RoomsService {
     const membership = await this.membershipModel
       .findOne({
         roomId: new Types.ObjectId(roomId),
-        userId: new Types.ObjectId(userId),
+        userId: new Types.ObjectId(this.cleanUserId(userId)),
       })
       .exec();
 

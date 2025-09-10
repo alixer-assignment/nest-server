@@ -7,6 +7,7 @@ import { RoomsController } from './rooms.controller';
 import { RoomsService } from './rooms.service';
 import { RoomMemberGuard } from './guards/room-member.guard';
 import { RoomRoleGuard } from './guards/room-role.guard';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { RoomRoleGuard } from './guards/room-role.guard';
       { name: Membership.name, schema: MembershipSchema },
       { name: User.name, schema: UserSchema },
     ]),
+    AuthModule,
   ],
   controllers: [RoomsController],
   providers: [RoomsService, RoomMemberGuard, RoomRoleGuard],

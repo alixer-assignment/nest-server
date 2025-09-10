@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Message, MessageSchema } from './schemas/message.schema';
 import { Room, RoomSchema } from '../rooms/schemas/room.schema';
@@ -13,6 +13,8 @@ import { CacheModule } from '../../common/cache/cache.module';
 import { RateLimitModule } from '../../common/rate-limit/rate-limit.module';
 import { LoggingModule } from '../../common/logging/logging.module';
 import { SanitizationModule } from '../../common/sanitization/sanitization.module';
+import { AuthModule } from '../auth/auth.module';
+import { RoomsModule } from '../rooms/rooms.module';
 
 @Module({
   imports: [
@@ -21,11 +23,13 @@ import { SanitizationModule } from '../../common/sanitization/sanitization.modul
       { name: Room.name, schema: RoomSchema },
       { name: User.name, schema: UserSchema },
     ]),
-    KafkaModule,
+    forwardRef(() => KafkaModule),
     CacheModule,
     RateLimitModule,
     LoggingModule,
     SanitizationModule,
+    AuthModule,
+    RoomsModule,
   ],
   controllers: [MessagesController, MessagesControllerDirect],
   providers: [MessagesService],

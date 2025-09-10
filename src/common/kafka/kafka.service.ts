@@ -20,6 +20,8 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private producer: Producer;
   private consumer: Consumer;
   private readonly logger = new Logger(KafkaService.name);
+  private topicCallbacks: Map<string, (message: any) => void> = new Map();
+  private consumerStarted = false;
 
   constructor(private configService: ConfigService) {}
 
@@ -78,8 +80,21 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     callback: (message: any) => void,
   ): Promise<void> {
     try {
+      // Store the callback for this topic
+      this.topicCallbacks.set(topic, callback);
+
+      // Subscribe to the topic
       await this.consumer.subscribe({ topic, fromBeginning: false });
 
+      this.logger.log(`Subscribed to topic: ${topic}`);
+    } catch (error) {
+      this.logger.error('Error setting up Kafka consumer:', error);
+      throw error;
+    }
+  }
+
+  async startConsumer(): Promise<void> {
+    if (!this.consumerStarted) {
       await this.consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
           try {
@@ -97,18 +112,20 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
                 `Message received from topic ${topic}:`,
                 validatedMessage,
               );
-              callback(validatedMessage);
+
+              // Get the callback for this topic and execute it
+              const topicCallback = this.topicCallbacks.get(topic);
+              if (topicCallback) {
+                topicCallback(validatedMessage);
+              }
             }
           } catch (error) {
             this.logger.error('Error processing consumed message:', error);
           }
         },
       });
-
-      this.logger.log(`Subscribed to topic: ${topic}`);
-    } catch (error) {
-      this.logger.error('Error setting up Kafka consumer:', error);
-      throw error;
+      this.consumerStarted = true;
+      this.logger.log('Kafka consumer started');
     }
   }
 

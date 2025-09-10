@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -41,7 +41,7 @@ import { SessionModule } from '../session/session.module';
       { name: User.name, schema: UserSchema },
       { name: Membership.name, schema: MembershipSchema },
     ]),
-    KafkaModule,
+    forwardRef(() => KafkaModule),
     RedisModule,
     CacheModule,
     RateLimitModule,

@@ -150,6 +150,8 @@ export class RoomsController {
     @Param('id') id: string,
     @CurrentUser() user: UserDocument,
   ): Promise<RoomResponseDto> {
+    console.log('id', id);
+    console.log('user', user);
     return this.roomsService.getRoomById(id, (user._id as any).toString());
   }
 

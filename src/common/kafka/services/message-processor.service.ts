@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { KafkaService } from '../kafka.service';
@@ -20,7 +26,9 @@ export class MessageProcessorService implements OnModuleInit {
     private kafkaService: KafkaService,
     private httpService: HttpService,
     private configService: ConfigService,
+    @Inject(forwardRef(() => MessagesService))
     private messagesService: MessagesService,
+    @Inject(forwardRef(() => ChatGateway))
     private chatGateway: ChatGateway,
   ) {
     this.fastApiUrl =
@@ -28,15 +36,17 @@ export class MessageProcessorService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // Start consuming messages from messages.inbound topic
+    // Subscribe to all topics first
     await this.kafkaService.consumeInboundMessages(
       this.handleInboundMessage.bind(this),
     );
 
-    // Start consuming messages from messages.moderated topic
     await this.kafkaService.consumeModeratedMessages(
       this.handleModeratedMessage.bind(this),
     );
+
+    // Start the consumer after all topics are subscribed
+    await this.kafkaService.startConsumer();
 
     this.logger.log('Message processor service initialized');
   }
